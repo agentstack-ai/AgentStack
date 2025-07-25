@@ -6,7 +6,7 @@ Our vision is to build the defacto CLI for quickly spinning up an AI Agent proje
 ### Exclusive Contributor Sticker
 AgentStack contributors all receive a free sticker pack including an exclusive holographic sticker only available to contributors to the project :)
 
-Once your PR is merge, fill out [this form](https://docs.google.com/forms/d/e/1FAIpQLSfvBEnsT8nsQleonJHoWQtHuhbsgUJ0a9IjOqeZbMGkga2NtA/viewform?usp=sf_link) and I'll send your sticker pack out ASAP! <3
+Once your PR is merged, fill out [this form](https://docs.google.com/forms/d/e/1FAIpQLSfvBEnsT8nsQleonJHoWQtHuhbsgUJ0a9IjOqeZbMGkga2NtA/viewform?usp=sf_link) and I'll send your sticker pack out ASAP! <3
 
 ## How to Help
 
@@ -16,13 +16,14 @@ The best place to engage in conversation about your contribution is in the Issue
 
 ## Setup
 
-1. Clone the repo
-   `git clone https://github.com/AgentOps-AI/AgentStack.git`
+1. Fork the repo from the github website or with [gh repo fork AgentOps-AI/AgentStack](https://cli.github.com/manual/gh_repo_fork)
+2. Clone the forked repo and get in there!
+   `ssh example`
+   `git clone git@github.com:<your-github-username>/AgentStack.git`
    `cd AgentStack`
-2. Install agentstack as an edtiable project and set it up for development and testing
+3. Install agentstack as an edtiable project and set it up for development and testing
    `pip install -e .[dev,test]`
    This will install the CLI locally and in editable mode so you can use `agentstack <command>` to test your latest changes
-
 
 ## Adding Tools
 If you're reading this section, you probably have a product that AI agents can use as a tool. We're glad you're here!

@@ -1,5 +1,4 @@
 from typing import Optional
-import os, sys
 from art import text2art
 import inquirer
 from agentstack import conf, log
@@ -16,10 +15,10 @@ PREFERRED_MODELS = [
     'deepseek/deepseek-coder',
     'deepseek/deepseek-reasoner',
     'openai/gpt-4o',
-    'anthropic/claude-3-5-sonnet',
     'openai/o1-preview',
     'openai/gpt-4-turbo',
-    'anthropic/claude-3-opus',
+    'anthropic/claude-3-opus-latest',
+    'anthropic/claude-3-5-sonnet-20240620',
 ]
 
 
@@ -38,7 +37,7 @@ def welcome_message():
 def undo() -> None:
     """Undo the last committed changes."""
     conf.assert_project()
-    
+
     changed_files = repo.get_uncommitted_files()
     if changed_files:
         log.warning("There are uncommitted changes that may be overwritten.")
@@ -113,4 +112,3 @@ def parse_insertion_point(position: Optional[str] = None) -> Optional[InsertionP
         raise ValueError(f"Position must be one of {','.join(valid_positions)}.")
 
     return next(x for x in InsertionPoint if x.value == position)
-
