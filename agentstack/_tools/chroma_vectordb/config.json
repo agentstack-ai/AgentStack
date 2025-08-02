@@ -1,0 +1,21 @@
+{
+    "name": "chroma_vectordb",
+    "url": "https://www.trychroma.com/",
+    "category": "vector-store",
+    "env": {
+        "OPENAI_API_KEY": null
+    },
+    "dependencies": [
+        "chromadb>=0.4.0",
+        "openai>=1.0.0",
+        "python-dotenv>=1.0.0",
+        "pytest>=7.0.0",
+        "pytest-mock>=3.10.0"
+    ],
+    "tools": [
+        "create_collection",
+        "add_documents",
+        "query_collection"
+    ],
+    "cta": "Make sure you have an OpenAI API key set in your environment variables."
+}
