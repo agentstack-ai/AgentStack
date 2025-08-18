@@ -1,0 +1,16 @@
+{
+    "name": "chatpdf",
+    "url": "https://api.chatpdf.com",
+    "category": "document_pdf_qa",
+    "env": {
+        "CHATPDF_API_KEY": "sec_SLIe2J2fj5e4kqU7B1mIMxf7tDP4B23k"
+    },
+    "dependencies": [
+        "requests>=2.31.0"
+    ],
+    "tools": [
+        "ask_pdf_url",
+        "ask_pdf_file"
+    ],
+    "cta": "Get your ChatPDF API key at https://www.chatpdf.com"
+}
