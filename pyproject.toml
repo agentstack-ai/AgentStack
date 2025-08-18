@@ -12,12 +12,11 @@ authors = [
 ]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = "<3.13,>=3.10"
 
 dependencies = [
     "agentops>=0.4.9",
     "typer>=0.12.5",
-    "inquirer>=3.4.0",
     "art>=6.3",
     "toml>=0.10.2",
     "ruamel.yaml.base>=0.3.2",
@@ -33,6 +32,7 @@ dependencies = [
     "uv>=0.5.6",
     "tomli>=2.2.1",
     "gitpython>=3.1.44",
+    "questionary>=2.0.1",
 ]
 
 [project.optional-dependencies]

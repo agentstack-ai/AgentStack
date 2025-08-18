@@ -1,46 +1,58 @@
 from typing import Optional
 import os
 import time
-import inquirer
-import webbrowser
+import questionary
+from questionary import Choice
 from art import text2art
 from agentstack import log
+from agentstack.cli.cli import PREFERRED_MODELS, get_validated_input
 from agentstack.frameworks import SUPPORTED_FRAMEWORKS
-from agentstack.utils import open_json_file, is_snake_case
-from agentstack.cli import welcome_message, get_validated_input
-from agentstack.cli.cli import PREFERRED_MODELS
-from agentstack._tools import get_all_tools, get_all_tool_names
+from agentstack.cli import welcome_message
+from agentstack._tools import get_all_tools
 from agentstack.templates import TemplateConfig
+from agentstack.providers import get_available_models
 
 
 class WizardData(dict):
     def to_template_config(self) -> TemplateConfig:
         agents = []
         for agent in self['design']['agents']:
-            agents.append(TemplateConfig.Agent(**{
-                'name': agent['name'],
-                'role': agent['role'],
-                'goal': agent['goal'],
-                'backstory': agent['backstory'],
-                'llm': agent['model'],
-            }))
-        
+            agents.append(
+                TemplateConfig.Agent(
+                    **{
+                        'name': agent['name'],
+                        'role': agent['role'],
+                        'goal': agent['goal'],
+                        'backstory': agent['backstory'],
+                        'llm': agent['model'],
+                    }
+                )
+            )
+
         tasks = []
         for task in self['design']['tasks']:
-            tasks.append(TemplateConfig.Task(**{
-                'name': task['name'],
-                'description': task['description'],
-                'expected_output': task['expected_output'],
-                'agent': task['agent'],
-            }))
-        
+            tasks.append(
+                TemplateConfig.Task(
+                    **{
+                        'name': task['name'],
+                        'description': task['description'],
+                        'expected_output': task['expected_output'],
+                        'agent': task['agent'],
+                    }
+                )
+            )
+
         tools = []
         for tool in self['tools']:
-            tools.append(TemplateConfig.Tool(**{
-                'name': tool,
-                'agents': [agent.name for agent in agents],  # all agents
-            }))
-        
+            tools.append(
+                TemplateConfig.Tool(
+                    **{
+                        'name': tool,
+                        'agents': [agent.name for agent in agents],  # all agents
+                    }
+                )
+            )
+
         return TemplateConfig(
             name=self['project']['name'],
             description=self['project']['description'],
@@ -56,92 +68,90 @@ class WizardData(dict):
         )
 
 
-def run_wizard(slug_name: str) -> TemplateConfig:
-    project_details = ask_project_details(slug_name)
-    welcome_message()
-    framework = ask_framework()
-    design = ask_design()
-    tools = ask_tools()
-    
-    wizard_data = WizardData({
-        'project': project_details,
-        'framework': framework,
-        'design': design,
-        'tools': tools,
-    })
-    return wizard_data.to_template_config()
-
-
 def ask_framework() -> str:
-    framework = inquirer.list_input(
-        message="What agent framework do you want to use?",
+    return questionary.select(
+        "What agent framework do you want to use?",
         choices=SUPPORTED_FRAMEWORKS,
-    )
-    #
-    # if framework == "Learn what these are (link)":
-    #     webbrowser.open("https://youtu.be/xvFZjo5PgG0")
-    #     framework = inquirer.list_input(
-    #         message="What agent framework do you want to use?",
-    #         choices=["CrewAI", "Autogen", "LiteLLM"],
-    #     )
-    #
-    # while framework in ['Autogen', 'LiteLLM']:
-    #     print(f"{framework} support coming soon!!")
-    #     framework = inquirer.list_input(
-    #         message="What agent framework do you want to use?",
-    #         choices=["CrewAI", "Autogen", "LiteLLM"],
-    #     )
-
-    #log.success("Congrats! Your project is ready to go! Quickly add features now or skip to do it later.\n\n")
-    return framework
+        use_indicator=True,
+    ).ask()
 
 
 def ask_agent_details():
     agent = {}
 
     agent['name'] = get_validated_input(
-        "What's the name of this agent? (snake_case)", min_length=3, snake_case=True
+        "What's the name of this agent?", min_length=3, snake_case=True, default='agent_007'
     )
 
-    agent['role'] = get_validated_input("What role does this agent have?", min_length=3)
+    agent['role'] = get_validated_input("What role does this agent have?", min_length=3, default='')
 
-    agent['goal'] = get_validated_input("What is the goal of the agent?", min_length=10)
+    agent['goal'] = get_validated_input("What is the goal of the agent?", min_length=10, default='')
 
-    agent['backstory'] = get_validated_input("Give your agent a backstory", min_length=10)
+    agent['backstory'] = get_validated_input("Give your agent a backstory", min_length=10, default='')
 
-    agent['model'] = inquirer.list_input(
-        message="What LLM should this agent use?", choices=PREFERRED_MODELS, default=PREFERRED_MODELS[0]
-    )
+    # Mirrors the logic for the default model selection in the CLI
+    # First question - show preferred models + "Other" option
+    other_msg = "Other (see all available models)"
+    model_choice = questionary.select(
+        "Which model would you like to use?",
+        choices=PREFERRED_MODELS + [other_msg],
+        use_indicator=True,
+        use_shortcuts=False,
+        use_jk_keys=False,
+        use_emacs_keys=False,
+        use_arrow_keys=True,
+        use_search_filter=True,
+    ).ask()
 
+    # If they choose "Other", show searchable all available models
+    if model_choice == other_msg:
+        log.info('\nA complete list of models is available at: "https://docs.litellm.ai/docs/providers"')
+        available_models = get_available_models()
+
+        model_choice = questionary.select(
+            "Select from all available models:",
+            choices=available_models,
+            use_indicator=True,
+            use_shortcuts=False,
+            use_jk_keys=False,
+            use_emacs_keys=False,
+            use_arrow_keys=True,
+            use_search_filter=True,
+        ).ask()
+
+    agent['model'] = model_choice
     return agent
 
 
 def ask_task_details(agents: list[dict]) -> dict:
     task = {}
-
     task['name'] = get_validated_input(
-        "What's the name of this task? (snake_case)", min_length=3, snake_case=True
+        "What's the name of this task? (snake_case)", min_length=3, snake_case=True, default=''
     )
-
-    task['description'] = get_validated_input("Describe the task in more detail", min_length=10)
-
+    task['description'] = get_validated_input("Describe the task in more detail", min_length=10, default='')
     task['expected_output'] = get_validated_input(
         "What do you expect the result to look like? (ex: A 5 bullet point summary of the email)",
         min_length=10,
+        default='',
     )
-
-    task['agent'] = inquirer.list_input(
-        message="Which agent should be assigned this task?",
+    task['agent'] = questionary.select(
+        "Which agent should be assigned this task?",
         choices=[a['name'] for a in agents],
-    )
+        use_indicator=True,
+        use_shortcuts=False,
+        use_jk_keys=False,
+        use_emacs_keys=False,
+        use_arrow_keys=True,
+        use_search_filter=True,
+    ).ask()
 
     return task
 
 
 def ask_design() -> dict:
-    use_wizard = inquirer.confirm(
-        message="Would you like to use the CLI wizard to set up agents and tasks?",
-    )
+    use_wizard = questionary.confirm(
+        "Would you like to use the CLI wizard to set up agents and tasks?",
+    ).ask()
 
     if not use_wizard:
         return {'agents': [], 'tasks': []}
@@ -161,11 +171,11 @@ First we need to create the agents that will work together to accomplish tasks:
     agents = []
     while make_agent:
         print('---')
-        print(f"Agent #{len(agents)+1}")
+        print(f"Agent #{len(agents) + 1}")
         agent = None
         agent = ask_agent_details()
         agents.append(agent)
-        make_agent = inquirer.confirm(message="Create another agent?")
+        make_agent = questionary.confirm(message="Create another agent?").ask()
 
     print('')
     for x in range(3):
@@ -184,7 +194,7 @@ First we need to create the agents that will work together to accomplish tasks:
         print(f"Task #{len(tasks) + 1}")
         task = ask_task_details(agents)
         tasks.append(task)
-        make_task = inquirer.confirm(message="Create another task?")
+        make_task = questionary.confirm(message="Create another task?").ask()
 
     print('')
     for x in range(3):
@@ -196,66 +206,88 @@ First we need to create the agents that will work together to accomplish tasks:
 
 
 def ask_tools() -> list:
-    use_tools = inquirer.confirm(
-        message="Do you want to add agent tools now? (you can do this later with `agentstack tools add <tool_name>`)",
-    )
+    use_tools = questionary.confirm(
+        "Do you want to add agent tools now? (you can do this later with `agentstack tools add <tool_name>`)",
+    ).ask()
 
     if not use_tools:
         return []
 
     tools_to_add = []
-
-    adding_tools = True
     tool_configs = get_all_tools()
 
-    while adding_tools:
-        tool_categories = []
-        for tool_config in tool_configs:
-            if tool_config.category not in tool_categories:
-                tool_categories.append(tool_config.category)
-        
-        tool_type = inquirer.list_input(
-            message="What category tool do you want to add?",
+    while True:
+        tool_categories = list(set(t.category for t in tool_configs))
+
+        tool_type = questionary.select(
+            "What category tool do you want to add?",
             choices=tool_categories + ["~~ Stop adding tools ~~"],
-        )
+            use_indicator=True,
+            use_shortcuts=False,
+            use_jk_keys=False,
+            use_emacs_keys=False,
+            use_arrow_keys=True,
+            use_search_filter=True,
+        ).ask()
 
-        tools_in_cat = []
-        for tool_config in tool_configs:
-            if tool_config.category == tool_type:
-                tools_in_cat.append(tool_config)
-        
-        tool_selection = inquirer.list_input(
-            message="Select your tool", 
-            choices=[f"{t.name} - {t.url}" for t in tools_in_cat if t not in tools_to_add], 
-        )
+        if tool_type == "~~ Stop adding tools ~~":
+            break
 
-        tools_to_add.append(tool_selection.split(' - ')[0])
+        tools_in_cat = [t for t in tool_configs if t.category == tool_type]
+
+        tool_selection = questionary.select(
+            "Select your tool",
+            choices=[
+                Choice(f"{t.name} - {t.url}", disabled="Already added" if t in tools_to_add else None)
+                for t in tools_in_cat
+            ],
+            use_indicator=True,
+            use_shortcuts=False,
+            use_jk_keys=False,
+            use_emacs_keys=False,
+            use_arrow_keys=True,
+            use_search_filter=True,
+        ).ask()
+
+        tool_name = tool_selection.split(' - ')[0]
+        tools_to_add.append(tool_name)
 
         log.info("Adding tools:")
         for t in tools_to_add:
             log.info(f'  - {t}')
         log.info('')
-        adding_tools = inquirer.confirm("Add another tool?")
+
+        if not questionary.confirm("Add another tool?").ask():
+            break
 
     return tools_to_add
 
 
 def ask_project_details(slug_name: Optional[str] = None) -> dict:
-    name = inquirer.text(message="What's the name of your project (snake_case)", default=slug_name or '')
-
-    if not is_snake_case(name):
-        log.error("Project name must be snake case")
-        return ask_project_details(slug_name)
-
-    questions = inquirer.prompt(
-        [
-            inquirer.Text("version", message="What's the initial version", default="0.1.0"),
-            inquirer.Text("description", message="Enter a description for your project"),
-            inquirer.Text("author", message="Who's the author (your name)?"),
-        ]
+    answers = {}
+    answers['name'] = get_validated_input(
+        "What's the name of your project (snake_case)", default=slug_name or '', snake_case=True
     )
+    answers['version'] = get_validated_input("What's the initial version", default='0.1.0')
+    answers['description'] = get_validated_input("Enter a description for your project", default='')
+    answers['author'] = get_validated_input("Who's the author (your name)?", default='')
 
-    questions['name'] = name
+    return answers
 
-    return questions
 
+def run_wizard(slug_name: str) -> TemplateConfig:
+    project_details = ask_project_details(slug_name)
+    welcome_message()
+    framework = ask_framework()
+    design = ask_design()
+    tools = ask_tools()
+
+    wizard_data = WizardData(
+        {
+            'project': project_details,
+            'framework': framework,
+            'design': design,
+            'tools': tools,
+        }
+    )
+    return wizard_data.to_template_config()

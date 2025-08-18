@@ -1,4 +1,4 @@
-import os, sys
+import os
 import shutil
 from pathlib import Path
 import unittest
@@ -11,7 +11,6 @@ from agentstack.exceptions import EnvironmentError
 import git
 
 
-
 BASE_PATH = Path(__file__).parent
 
 
@@ -19,13 +18,25 @@ class TestRepo(unittest.TestCase):
     def setUp(self):
         self.framework = os.getenv('TEST_FRAMEWORK')
         self.test_dir = BASE_PATH / 'tmp' / self.framework / 'test_repo'
-        os.makedirs(self.test_dir)
+        os.chdir(str(BASE_PATH))  # Change directory before cleanup to avoid Windows file locks
+        os.makedirs(self.test_dir, exist_ok=True)
         os.chdir(self.test_dir)  # gitpython needs a cwd
-        
         conf.set_path(self.test_dir)
 
     def tearDown(self):
-        shutil.rmtree(self.test_dir)
+        # Close any open git repo before cleanup
+        try:
+            git_repo = git.Repo(self.test_dir)
+            git_repo.close()
+        except (git.exc.InvalidGitRepositoryError, git.exc.NoSuchPathError):
+            pass
+
+        # Change directory out before removing
+        os.chdir(str(BASE_PATH))
+
+        # Remove the test directory
+        if self.test_dir.exists():
+            shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_init(self):
         repo.init(force_creation=True)
@@ -41,8 +52,7 @@ class TestRepo(unittest.TestCase):
         self.assertEqual(commits[0].message, f"{repo.INITIAL_COMMIT_MESSAGE}{repo.AUTOMATION_NOTE}")
 
     def test_init_parent_repo_exists(self):
-        os.makedirs(self.test_dir.parent / '.git')
-        
+        os.makedirs(self.test_dir.parent / '.git', exist_ok=True)
         repo.init(force_creation=False)
         self.assertFalse((self.test_dir / '.git').is_dir())
 
@@ -126,30 +136,34 @@ class TestRepo(unittest.TestCase):
     def test_require_git_when_disabled_manually(self):
         # Disable git tracking
         repo.dont_track_changes()
-        
+
         with self.assertRaises(repo.TrackingDisabledError):
             repo._require_git()
-        
+
         # Reset _USE_GIT for other tests
         repo._USE_GIT = None
 
-    @parameterized.expand([
-        ("apt", "/usr/bin/apt", "Hint: run `sudo apt install git`"),
-        ("brew", "/usr/local/bin/brew", "Hint: run `brew install git`"),
-        ("port", "/opt/local/bin/port", "Hint: run `sudo port install git`"),
-        ("none", None, ""),
-    ])
+    @parameterized.expand(
+        [
+            ("apt", "/usr/bin/apt", "Hint: run `sudo apt install git`"),
+            ("brew", "/usr/local/bin/brew", "Hint: run `brew install git`"),
+            ("port", "/opt/local/bin/port", "Hint: run `sudo port install git`"),
+            ("none", None, ""),
+        ]
+    )
     @patch('agentstack.repo.should_track_changes', return_value=True)
     @patch('agentstack.repo.shutil.which')
-    def test_require_git_not_installed(self, name, package_manager_path, expected_hint, mock_which, mock_should_track):
+    def test_require_git_not_installed(
+        self, name, package_manager_path, expected_hint, mock_which, mock_should_track
+    ):
         mock_which.side_effect = lambda x: None if x != name else package_manager_path
-        
+
         with self.assertRaises(EnvironmentError) as context:
             repo._require_git()
-        
+
         error_message = str(context.exception)
         self.assertIn("git is not installed.", error_message)
-        
+
         if expected_hint:
             self.assertIn(expected_hint, error_message)
 
@@ -168,7 +182,7 @@ class TestRepo(unittest.TestCase):
                 (self.test_dir / "test_file.txt").touch()
                 transaction.add_message("Test message")
 
-            mock_commit.assert_called_once_with(f"Test message", ["test_file.txt"], automated=True)
+            mock_commit.assert_called_once_with("Test message", ["test_file.txt"], automated=True)
 
     def test_transaction_multiple_messages(self):
         repo.init(force_creation=True)
@@ -182,7 +196,7 @@ class TestRepo(unittest.TestCase):
                 transaction.add_message("Second message")
 
             mock_commit.assert_called_once_with(
-                f"First message, Second message", ["test_file.txt", "test_file_2.txt"], automated=True
+                "First message, Second message", ["test_file.txt", "test_file_2.txt"], automated=True
             )
 
     def test_transaction_no_changes(self):
@@ -242,20 +256,20 @@ class TestRepo(unittest.TestCase):
 
     def test_commit_user_changes(self):
         repo.init(force_creation=True)
-        
+
         # Create a new file
         test_file = self.test_dir / "user_file.txt"
         test_file.write_text("User content")
-        
+
         # Commit user changes
         repo.commit_user_changes()
-        
+
         # Check if the file was committed
         git_repo = git.Repo(self.test_dir)
         commits = list(git_repo.iter_commits())
-        
+
         self.assertEqual(len(commits), 2)  # Initial commit + user changes commit
         self.assertEqual(commits[0].message, f"{repo.USER_CHANGES_COMMIT_MESSAGE}{repo.AUTOMATION_NOTE}")
-        
+
         # Check if the file is no longer in uncommitted files
         self.assertNotIn("user_file.txt", repo.get_uncommitted_files())

@@ -1,11 +1,10 @@
 import unittest
-import os, sys
+import os
 import io
 import logging
 import shutil
 from pathlib import Path
 from agentstack import log, conf
-from agentstack.log import SUCCESS, NOTIFY
 
 BASE_PATH = Path(__file__).parent
 
@@ -17,7 +16,7 @@ class TestLog(unittest.TestCase):
         self.test_dir.mkdir(parents=True, exist_ok=True)
 
         conf.set_path(self.test_dir)
-        self.test_log_file = (self.test_dir / log.LOG_FILENAME)
+        self.test_log_file = self.test_dir / log.LOG_FILENAME
         self.test_log_file.touch()
 
         # Create string IO objects to capture stdout/stderr
@@ -30,7 +29,17 @@ class TestLog(unittest.TestCase):
         log.set_stderr(self.stderr)
 
     def tearDown(self):
-        shutil.rmtree(self.test_dir)
+        # Close all handlers before cleanup
+        logger = logging.getLogger('agentstack')
+        for handler in logger.handlers[:]:  # [:] creates a copy of the list
+            handler.close()
+            logger.removeHandler(handler)
+
+        # reset log -> change dir -> remove dir
+        log.instance = None
+        os.chdir(str(BASE_PATH))
+        if self.test_dir.exists():
+            shutil.rmtree(self.test_dir)
 
     def test_debug_message(self):
         log.debug("Debug message")

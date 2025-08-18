@@ -1,14 +1,12 @@
 from typing import Optional
-import os, sys
 from art import text2art
-import inquirer
+import questionary
 from agentstack import conf, log
 from agentstack.conf import ConfigFile
-from agentstack.exceptions import ValidationError
-from agentstack.utils import validator_not_empty, is_snake_case
 from agentstack.generation import InsertionPoint
 from agentstack import repo
-
+from agentstack.providers import get_available_models
+from agentstack.utils import is_snake_case
 
 PREFERRED_MODELS = [
     'groq/deepseek-r1-distill-llama-70b',
@@ -21,6 +19,48 @@ PREFERRED_MODELS = [
     'openai/gpt-4-turbo',
     'anthropic/claude-3-opus',
 ]
+
+
+def get_validated_input(
+    message: str,
+    default: Optional[str] = None,
+    validate_func=None,
+    min_length: int = 0,
+    snake_case: bool = False,
+) -> str:
+    """Helper function to get validated input from user.
+
+    Args:
+        message: The prompt message to display
+        validate_func: Optional custom validation function that returns (bool, str)
+        min_length: Minimum length requirement (0 for no requirement)
+        snake_case: Whether to enforce snake_case naming
+        if no validators are provided the default validation applies
+    """
+    while True:
+
+        def validate(text: str) -> str | bool:
+            if min_length and len(text) < min_length:
+                return f"Input must be at least {min_length} characters long"
+
+            if snake_case and not is_snake_case(text):
+                return "Input must be in snake_case format (lowercase with underscores)"
+
+            if validate_func:
+                is_valid, error_msg = validate_func(text)
+                if not is_valid:
+                    return error_msg
+
+            return True
+
+        value = questionary.text(
+            message,
+            default=default or "",
+            validate=validate if validate_func or min_length or snake_case else None,
+        ).ask()
+
+        if value:
+            return value
 
 
 def welcome_message():
@@ -38,16 +78,16 @@ def welcome_message():
 def undo() -> None:
     """Undo the last committed changes."""
     conf.assert_project()
-    
+
     changed_files = repo.get_uncommitted_files()
     if changed_files:
         log.warning("There are uncommitted changes that may be overwritten.")
         for changed in changed_files:
             log.info(f" - {changed}")
-        should_continue = inquirer.confirm(
-            message="Do you want to continue?",
+        should_continue = questionary.confirm(
+            "Do you want to continue?",
             default=False,
-        )
+        ).ask()
         if not should_continue:
             return
 
@@ -62,43 +102,39 @@ def configure_default_model():
         return  # Default model already set
 
     log.info("Project does not have a default model configured.")
-    other_msg = "Other (enter a model name)"
-    model = inquirer.list_input(
-        message="Which model would you like to use?",
-        choices=PREFERRED_MODELS + [other_msg],
-    )
 
-    if model == other_msg:  # If the user selects "Other", prompt for a model name
-        log.info('A list of available models is available at: "https://docs.litellm.ai/docs/providers"')
-        model = inquirer.text(message="Enter the model name")
+    # First question - show preferred models + "Other" option
+    other_msg = "Other (see all available models)"
+    model_choice = questionary.select(
+        "Which model would you like to use?",
+        choices=PREFERRED_MODELS + [other_msg],
+        use_indicator=True,
+        use_shortcuts=False,
+        use_jk_keys=False,
+        use_emacs_keys=False,
+        use_arrow_keys=True,
+        use_search_filter=True,
+    ).ask()
+
+    # If they choose "Other", show searchable all available models
+    if model_choice == other_msg:
+        log.info('\nA complete list of models is available at: "https://docs.litellm.ai/docs/providers"')
+        available_models = get_available_models()
+
+        model_choice = questionary.select(
+            "Select from all available models (some may not yet be supported by AgentStack):",
+            choices=available_models,
+            use_indicator=True,
+            use_shortcuts=False,
+            use_jk_keys=False,
+            use_emacs_keys=False,
+            use_arrow_keys=True,
+            use_search_filter=True,
+        ).ask()
 
     log.debug("Writing default model to project config.")
     with ConfigFile() as agentstack_config:
-        agentstack_config.default_model = model
-
-
-def get_validated_input(
-    message: str,
-    validate_func=None,
-    min_length: int = 0,
-    snake_case: bool = False,
-) -> str:
-    """Helper function to get validated input from user.
-
-    Args:
-        message: The prompt message to display
-        validate_func: Optional custom validation function
-        min_length: Minimum length requirement (0 for no requirement)
-        snake_case: Whether to enforce snake_case naming
-    """
-    while True:
-        value = inquirer.text(
-            message=message,
-            validate=validate_func or validator_not_empty(min_length) if min_length else None,
-        )
-        if snake_case and not is_snake_case(value):
-            raise ValidationError("Input must be in snake_case")
-        return value
+        agentstack_config.default_model = model_choice
 
 
 def parse_insertion_point(position: Optional[str] = None) -> Optional[InsertionPoint]:
@@ -113,4 +149,3 @@ def parse_insertion_point(position: Optional[str] = None) -> Optional[InsertionP
         raise ValueError(f"Position must be one of {','.join(valid_positions)}.")
 
     return next(x for x in InsertionPoint if x.value == position)
-

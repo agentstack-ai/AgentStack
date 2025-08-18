@@ -1,7 +1,7 @@
-import os, sys
+import os
+import sys
 from typing import Optional
-from pathlib import Path
-import inquirer
+import questionary
 from textwrap import shorten
 
 from agentstack import conf, log
@@ -38,12 +38,12 @@ def require_uv():
 
 def prompt_slug_name() -> str:
     """Prompt the user for a project name."""
-    
+
     def _validate(slug_name: Optional[str]) -> bool:
         if not slug_name:
             log.error("Project name cannot be empty")
             return False
-            
+
         if not is_snake_case(slug_name):
             log.error("Project name must be snake_case")
             return False
@@ -53,22 +53,12 @@ def prompt_slug_name() -> str:
             return False
 
         return True
-    
-    def _prompt() -> str:
-        return inquirer.text(
-            message="Project name (snake_case)",
-        )
-    
+
     log.info(
         "Provide a project name. This will be used to create a new directory in the "
         "current path and will be used as the project name. 🐍 Must be snake_case."
     )
-    slug_name = None
-    while not _validate(slug_name):
-        slug_name = _prompt()
-    
-    assert slug_name  # appease type checker
-    return slug_name
+    return questionary.text("Project name (snake_case)", validate=_validate).ask()
 
 
 def select_template(slug_name: str, framework: Optional[str] = None) -> TemplateConfig:
@@ -77,16 +67,23 @@ def select_template(slug_name: str, framework: Optional[str] = None) -> Template
 
     EMPTY = 'empty'
     choices = [
-        (EMPTY, "🆕 Empty Project"),
+        questionary.Choice('🆕 Empty Project', EMPTY),
     ]
     for template in templates:
-        choices.append((template.name, shorten(f"⚡️ {template.name} - {template.description}", 80)))
+        choices.append(
+            questionary.Choice(f"⚡️ {template.name} - {shorten(template.description, 80)}", template.name)
+        )
 
-    choice = inquirer.list_input(
-        message="Do you want to start with a template?",
-        choices=[c[1] for c in choices],
-    )
-    template_name = next(c[0] for c in choices if c[1] == choice)
+    template_name = questionary.select(
+        "Do you want to start with a template?",
+        choices=choices,
+        use_indicator=True,
+        use_shortcuts=False,
+        use_jk_keys=False,
+        use_emacs_keys=False,
+        use_arrow_keys=True,
+        use_search_filter=True,
+    ).ask()
 
     if template_name == EMPTY:
         return TemplateConfig(
@@ -148,11 +145,11 @@ def init_project(
 
     if framework is None:
         framework = template_data.framework
-    
+
     if framework in frameworks.ALIASED_FRAMEWORKS:
         framework = frameworks.ALIASED_FRAMEWORKS[framework]
-    
-    if not framework in frameworks.SUPPORTED_FRAMEWORKS:
+
+    if framework not in frameworks.SUPPORTED_FRAMEWORKS:
         raise Exception(f"Framework '{framework}' is not supported.")
     log.info(f"Using framework: {framework}")
 
@@ -163,7 +160,7 @@ def init_project(
     packaging.create_venv()
     log.info("Installing dependencies...")
     packaging.install_project()
-    
+
     if repo.find_parent_repo(conf.PATH):
         # if a repo already exists, we don't want to initialize a new one
         log.info("Found existing git repository; disabling tracking.")

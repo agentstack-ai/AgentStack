@@ -7,20 +7,19 @@ from importlib.metadata import version
 from pathlib import Path
 import importlib.resources
 from agentstack import conf
-from inquirer import errors as inquirer_errors
 from appdirs import user_data_dir
 
 
 def get_version(package: str = 'agentstack'):
     try:
         return version(package)
-    except (KeyError, FileNotFoundError) as e:
+    except (KeyError, FileNotFoundError):
         return "Unknown version"
 
 
 def verify_agentstack_project():
     try:
-        agentstack_config = conf.ConfigFile()
+        conf.ConfigFile()
     except FileNotFoundError:
         raise Exception(
             "This does not appear to be an AgentStack project.\n"
@@ -109,16 +108,6 @@ def term_color(text: str, color: str) -> str:
 def is_snake_case(string: str):
     return bool(re.match('^[a-z0-9_]+$', string))
 
-
-def validator_not_empty(min_length=1):
-    def validator(_, answer):
-        if len(answer) < min_length:
-            raise inquirer_errors.ValidationError(
-                '', reason=f"This field must be at least {min_length} characters long."
-            )
-        return True
-
-    return validator
 
 def get_base_dir():
     """Try to get appropriate directory for storing update file"""

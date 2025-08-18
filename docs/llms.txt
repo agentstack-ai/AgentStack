@@ -791,7 +791,7 @@ The best place to engage in conversation about your contribution is in the Issue
 
 1. `git clone https://github.com/AgentOps-AI/AgentStack.git`
    `cd AgentStack`
-2. `uv pip install -e ".[dev,test]`
+2. `uv pip install -e ".[dev,test]"`
    - This will install the CLI locally and in editable mode so you can use `agentstack <command>` to test your latest changes
    - Note that after you initialize a project, it will install it's own version of `agentstack` in the project's
    virtual environment. To use your local version, run `uv pip install -e "../AgentStack/.[<framework>]"` to get

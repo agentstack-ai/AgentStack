@@ -1,5 +1,4 @@
-from typing import Callable
-import os, sys
+import os
 from pathlib import Path
 import shutil
 import unittest
@@ -21,10 +20,11 @@ class TestFrameworks(unittest.TestCase):
         self.framework = os.getenv('TEST_FRAMEWORK')
         self.project_dir = BASE_PATH / 'tmp' / self.framework / 'test_frameworks'
 
-        os.makedirs(self.project_dir)
+        # Clean up and recreate test directory
+        os.makedirs(self.project_dir, exist_ok=True)
         os.chdir(self.project_dir)  # importing the crewai module requires us to be in a working directory
-        os.makedirs(self.project_dir / 'src')
-        os.makedirs(self.project_dir / 'src' / 'config')
+        os.makedirs(self.project_dir / 'src', exist_ok=True)
+        os.makedirs(self.project_dir / 'src' / 'config', exist_ok=True)
 
         (self.project_dir / 'src' / '__init__.py').touch()
 
@@ -34,7 +34,9 @@ class TestFrameworks(unittest.TestCase):
             config.framework = self.framework
 
     def tearDown(self):
-        shutil.rmtree(self.project_dir)
+        # Change directory before cleanup to avoid Windows file locks
+        os.chdir(str(BASE_PATH))
+        shutil.rmtree(self.project_dir, ignore_errors=True)
 
     def _populate_min_entrypoint(self):
         """This entrypoint does not have any tools or agents."""
@@ -80,7 +82,7 @@ class TestFrameworks(unittest.TestCase):
             assert hasattr(module, method_name), f"Method {method_name} not implemented in {self.framework}"
 
     def test_get_framework_module_invalid(self):
-        with self.assertRaises(Exception) as context:
+        with self.assertRaises(Exception):
             frameworks.get_framework_module('invalid')
 
     def test_validate_project(self):
@@ -89,21 +91,21 @@ class TestFrameworks(unittest.TestCase):
 
     def test_validate_project_invalid(self):
         self._populate_min_entrypoint()
-        with self.assertRaises(ValidationError) as context:
+        with self.assertRaises(ValidationError):
             frameworks.validate_project()
 
     def test_validate_project_has_agent_no_task_invalid(self):
         self._populate_min_entrypoint()
         shutil.copy(BASE_PATH / 'fixtures/agents_max.yaml', self.project_dir / AGENTS_FILENAME)
-        
+
         frameworks.add_agent(self._get_test_agent())
-        with self.assertRaises(ValidationError) as context:
+        with self.assertRaises(ValidationError):
             frameworks.validate_project()
 
     def test_validate_project_has_task_no_agent_invalid(self):
         self._populate_min_entrypoint()
         frameworks.add_task(self._get_test_task())
-        with self.assertRaises(ValidationError) as context:
+        with self.assertRaises(ValidationError):
             frameworks.validate_project()
 
     def test_validate_project_missing_agent_method_invalid(self):
@@ -119,7 +121,7 @@ class TestFrameworks(unittest.TestCase):
   backstory: >-
     this is a backstory
   llm: openai/gpt-4o""")
-        with self.assertRaises(ValidationError) as context:
+        with self.assertRaises(ValidationError):
             frameworks.validate_project()
 
     def test_validate_project_missing_task_method_invalid(self):
@@ -134,8 +136,8 @@ class TestFrameworks(unittest.TestCase):
     Add your expected output here
   agent: >-
     default_agent""")
-                    
-        with self.assertRaises(ValidationError) as context:
+
+        with self.assertRaises(ValidationError):
             frameworks.validate_project()
 
     def test_get_agent_tool_names(self):
@@ -161,7 +163,7 @@ class TestFrameworks(unittest.TestCase):
 
     def test_add_tool_invalid(self):
         self._populate_min_entrypoint()
-        with self.assertRaises(ValidationError) as context:
+        with self.assertRaises(ValidationError):
             frameworks.add_tool(self._get_test_tool(), 'agent_name')
 
     def test_remove_tool(self):

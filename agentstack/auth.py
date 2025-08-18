@@ -7,7 +7,7 @@ import threading
 import socket
 from pathlib import Path
 
-import inquirer
+import questionary
 from appdirs import user_data_dir
 from agentstack import log
 
@@ -73,6 +73,7 @@ class AuthCallbackHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(f'Error: {str(e)}'.encode())
 
+
 def find_free_port():
     """Find a free port on localhost"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -80,6 +81,7 @@ def find_free_port():
         s.listen(1)
         port = s.getsockname()[1]
     return port
+
 
 def start_auth_server():
     """Start the local authentication server"""
@@ -96,7 +98,7 @@ def login():
         token = get_stored_token()
         if token:
             log.success("You are already authenticated!")
-            if not inquirer.confirm('Would you like to log in with a different account?'):
+            if not questionary.confirm('Would you like to log in with a different account?').ask():
                 return
 
         # Start the local server
