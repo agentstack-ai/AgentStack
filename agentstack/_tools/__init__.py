@@ -24,6 +24,32 @@ def _get_builtin_tool_path(name: str) -> Path:
     return TOOLS_DIR / name / TOOLS_CONFIG_FILENAME
 
 
+class Callback(pydantic.BaseModel):
+    """A callback to be called after a tool is run."""
+
+    script: Optional[str] = None  # call a script (this is the current implementation)
+    method: Optional[str] = None  # call a python method
+    url: Optional[str] = None  # call a URL
+    
+    @pydantic.validator('script', 'method', 'url', mode='after')
+    def check_callback(cls, v, values, field):
+        if not any([values.get('script'), values.get('method'), values.get('url')]):
+            raise ValueError('At least one of script, method, or url must be set')
+        return v
+    
+    @property
+    def SCRIPT(self) -> bool:
+        return self.script is not None
+
+    @property
+    def METHOD(self) -> bool:
+        return self.method is not None
+
+    @property
+    def URL(self) -> bool:
+        return self.url is not None
+
+
 class ToolConfig(pydantic.BaseModel):
     """
     This represents the configuration data for a tool.
@@ -38,8 +64,8 @@ class ToolConfig(pydantic.BaseModel):
     cta: Optional[str] = None
     env: Optional[dict] = None
     dependencies: Optional[list[str]] = None
-    post_install: Optional[str] = None
-    post_remove: Optional[str] = None
+    post_install: Optional[Callback] = None
+    post_remove: Optional[Callback] = None
 
     @classmethod
     def from_tool_name(cls, name: str) -> 'ToolConfig':

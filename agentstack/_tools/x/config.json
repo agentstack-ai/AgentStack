@@ -1,0 +1,28 @@
+{
+    "name": "x",
+    "category": "social-media",
+    "env": {
+        "X_CLIENT_ID": null, 
+        "X_CLIENT_SECRET": null,
+        "X_ACCESS_TOKEN": null
+    },
+    "dependencies": [
+        "tweepy>=4.14.0"
+    ],
+    "tools": [
+        "get_my_profile",
+        "get_timeline",
+        "get_user_by_username",
+        "get_tweet_by_id",
+        "create_tweet",
+        "create_retweet",
+        "create_quote",
+        "create_reply",
+        "get_my_followers",
+        "get_my_following",
+        "create_follow",
+        "get_my_liked_tweets",
+        "get_tweet_likes",
+        "create_like"
+    ]
+}

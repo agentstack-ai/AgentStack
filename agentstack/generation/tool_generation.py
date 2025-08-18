@@ -1,16 +1,42 @@
+from typing import Optional
 import json
 import os, sys
 from pathlib import Path
-from typing import Optional
+from importlib import import_module
+import requests
 from agentstack import conf, log
 from agentstack.conf import ConfigFile
 from agentstack.exceptions import ValidationError
 from agentstack import frameworks
 from agentstack import packaging
 from agentstack.utils import term_color
-from agentstack._tools import ToolConfig
+from agentstack._tools import Callback, ToolConfig
 from agentstack.generation import asttools
 from agentstack.generation.files import EnvFile
+
+
+def _handle_callback(callback: Callback) -> None:
+    if callback.SCRIPT:
+        log.debug(f'Calling script {callback.script}')
+        os.system(callback.script)
+
+    elif callback.METHOD:
+        log.debug(f'Calling method {callback.method}')
+        module_name, method_name = callback.method.rsplit('.', 1)
+        module = import_module(module_name)
+        method = getattr(module, method_name)
+        method()
+
+    elif callback.URL:
+        log.debug(f'Calling URL {callback.url}')
+        response = requests.get(callback.url)  # TODO methods
+        if response.status_code == 200:
+            log.info(response.text)
+        else:
+            log.error(f'Response Code: {response.status_code}')
+    
+    else:
+        raise ValidationError('Invalid callback type')
 
 
 def add_tool(name: str, agents: Optional[list[str]] = []):
@@ -33,7 +59,7 @@ def add_tool(name: str, agents: Optional[list[str]] = []):
                     env.append_if_new(var, value)
 
         if tool.post_install:
-            os.system(tool.post_install)
+            _handle_callback(tool.post_install)
 
         with agentstack_config as config:
             config.tools.append(tool.name)
@@ -120,7 +146,7 @@ def remove_tool(name: str, agents: Optional[list[str]] = []):
         frameworks.remove_tool(tool, agent_name)
 
     if tool.post_remove:
-        os.system(tool.post_remove)
+        _handle_callback(tool.post_remove)
     # We don't remove the .env variables to preserve user data.
 
     with agentstack_config as config:
