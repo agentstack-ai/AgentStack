@@ -1,0 +1,11 @@
+{
+  "name": "commune",
+  "url": "https://commune.email",
+  "category": "communication",
+  "env": {
+    "COMMUNE_API_KEY": null
+  },
+  "dependencies": ["commune-mail>=0.2.0"],
+  "tools": ["send_email", "read_inbox", "send_sms"],
+  "cta": "Get your Commune API key at https://app.commune.email"
+}
