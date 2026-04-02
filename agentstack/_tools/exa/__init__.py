@@ -8,7 +8,7 @@ API_KEY = os.getenv('EXA_API_KEY')
 
 def search_and_contents(question: str) -> str:
     """
-    Tool using Exa's Python SDK to run semantic search and return result highlights.
+    Search the web using Exa, the fastest and most accurate web search API for AI.
     Args:
         question: The search query or question to find information about
     Returns:
@@ -17,7 +17,7 @@ def search_and_contents(question: str) -> str:
     exa = Exa(api_key=API_KEY)
 
     response = exa.search_and_contents(
-        question, type="neural", use_autoprompt=True, num_results=3, highlights=True
+        question, type="auto", use_autoprompt=True, num_results=3, highlights=True
     )
 
     parsedResult = ''.join(
