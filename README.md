@@ -151,4 +151,78 @@ AgentStack is open source software [licensed as MIT](LICENSE).
 
 AgentStack is a new project built by passionate AI agent developers! We'd love help making this tool better. Easy first issues are available, create new issues with feature ideas, or chat with us on our [Discord](https://discord.gg/JdWkh9tgTQ). Make sure you read our contributor documentation to familiarize yourself with the project at [How to Contribute](https://docs.agentstack.sh/contributing/how-to-contribute).
 
-If you are an Agent Tool developer, feel free to create an issue or even a PR to add your tool to AgentStack. 
+If you are an Agent Tool developer, feel free to create an issue or even a PR to add your tool to AgentStack.
+
+## ❓ FAQ
+
+### What is AgentStack?
+
+AgentStack scaffolds your agent stack - the tech stack that collectively is your AI agent. It provides CLI utilities for quick code-gen and project scaffolding.
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Quick Scaffolding** | Create agent projects in seconds |
+| **Multi-Framework** | CrewAI, LangGraph, OpenAI Swarms, LlamaStack |
+| **Preconfigured Tools** | Largest framework-agnostic tools repo |
+| **Observability** | AgentOps baked in by default |
+| **Code-Gen** | CLI utilities for easy generation |
+| **Templates** | Pre-built project templates |
+
+### Getting Started
+
+```bash
+# Install
+curl --proto '=https' --tlsv1.2 -LsSf https://install.agentstack.sh | sh
+
+# Or with pip/uv
+uv pip install agentstack
+
+# Create new project
+agentstack init <project_name>
+
+# Run default agent
+agentstack run
+```
+
+### Supported Frameworks
+
+| Framework | Status | Description |
+|-----------|--------|-------------|
+| **CrewAI** | ✅ Stable | Multi-agent orchestration |
+| **LangGraph** | ✅ Stable | Graph-based workflows |
+| **OpenAI Swarms** | ✅ Stable | Lightweight agent system |
+| **LlamaStack** | ✅ Stable | Llama agent toolkit |
+| **Pydantic AI** | 📋 Roadmap | Type-safe agents |
+| **Eliza** | 📋 Roadmap | JavaScript agents |
+| **AG2/Autogen** | 📋 Roadmap | Multi-agent research |
+
+### Supported LLMs
+
+All major LLMs via LiteLLM or LangChain integration:
+- OpenAI, Anthropic, Google, Azure
+- Local models via Ollama
+- Custom providers
+
+### Available Tools
+
+AgentStack maintains the largest repository of framework-agnostic tools. See [tools documentation](https://docs.agentstack.sh/tools/community) for full list.
+
+### Templates
+
+Pre-built templates available for common use cases. [View templates](https://docs.agentstack.sh/templates).
+
+### Requirements
+
+- Python 3.10+
+- Recommended: use pyenv for version management
+
+### License & Resources
+
+- **License**: MIT
+- **Docs**: [docs.agentstack.sh](https://docs.agentstack.sh)
+- **Quickstart**: [Quickstart Guide](https://docs.agentstack.sh/quickstart)
+- **Video**: [Loom Tutorial](https://www.loom.com/share/68d796b13cd94647bd1d7fae12b2358e)
+- **Discord**: [Join Community](https://discord.gg/JdWkh9tgTQ)
+- **Issues**: [GitHub Issues](https://github.com/agentstack-ai/AgentStack/issues)
