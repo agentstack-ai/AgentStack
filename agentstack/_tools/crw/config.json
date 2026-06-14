@@ -1,0 +1,23 @@
+{
+  "name": "crw",
+  "url": "https://fastcrw.com/",
+  "category": "browsing",
+  "env": {
+    "CRW_API_KEY": null,
+    "CRW_API_URL": "https://fastcrw.com/api"
+  },
+  "dependencies": [
+    "firecrawl-py>=1.6.4"
+  ],
+  "tools": [
+    "web_scrape",
+    "web_crawl",
+    "retrieve_web_crawl",
+    "batch_scrape",
+    "check_batch_status",
+    "extract_data",
+    "map_website",
+    "batch_extract"
+  ],
+  "cta": "Create an API key at https://fastcrw.com/"
+}
