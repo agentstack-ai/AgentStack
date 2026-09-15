@@ -6,7 +6,7 @@ from textwrap import shorten
 
 from agentstack import conf, log
 from agentstack.exceptions import EnvironmentError
-from agentstack.utils import is_snake_case
+from agentstack.utils import clean_input, is_snake_case
 from agentstack import packaging
 from agentstack import frameworks
 from agentstack import generation
@@ -121,6 +121,9 @@ def init_project(
 
     if not slug_name:
         slug_name = prompt_slug_name()
+
+    # Keep the filesystem path aligned with the slug used by Cookiecutter.
+    slug_name = clean_input(slug_name)
 
     conf.set_path(conf.PATH / slug_name)
     # cookiecutter requires the directory to not exist

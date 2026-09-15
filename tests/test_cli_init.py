@@ -3,6 +3,8 @@ import unittest
 from parameterized import parameterized
 from pathlib import Path
 import shutil
+import tempfile
+from unittest.mock import patch
 from cli_test_utils import run_cli
 from agentstack import conf
 from agentstack import frameworks
@@ -31,6 +33,29 @@ class CLIInitTest(unittest.TestCase):
         result = run_cli('init', 'test_project', '--template', template_name)
         self.assertEqual(result.returncode, 0)
         self.assertTrue((self.project_dir / 'test_project').exists())
+
+    def test_init_command_normalizes_hyphenated_project_name(self):
+        """The CLI path must match the normalized Cookiecutter project slug."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            original_path = conf.PATH
+            conf.set_path(temp_dir)
+            try:
+                with patch('agentstack.cli.init.require_uv'), \
+                    patch('agentstack.cli.init.welcome_message'), \
+                    patch('agentstack.cli.init.insert_template') as insert_template, \
+                    patch('agentstack.cli.init.packaging.create_venv'), \
+                    patch('agentstack.cli.init.packaging.install_project'), \
+                    patch('agentstack.cli.init.repo.init'), \
+                    patch('agentstack.cli.init.repo.find_parent_repo', return_value=None), \
+                    patch('agentstack.cli.init.repo.Transaction') as transaction:
+                    transaction.return_value.__enter__.return_value = transaction.return_value
+                    init_project(slug_name='test-project', template='empty', framework='crewai')
+
+                self.assertEqual(conf.PATH, Path(temp_dir) / 'test_project')
+                insert_template.assert_called_once()
+                self.assertEqual(insert_template.call_args.kwargs['name'], 'test_project')
+            finally:
+                conf.set_path(original_path)
 
     @parameterized.expand([(k, v) for k, v in frameworks.ALIASED_FRAMEWORKS.items()])
     def test_init_command_aliased_framework_empty_project(self, alias: str, framework: str):

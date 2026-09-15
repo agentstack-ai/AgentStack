@@ -86,7 +86,8 @@ def open_yaml_file(path) -> dict:
 
 def clean_input(input_string):
     special_char_pattern = re.compile(r'[^a-zA-Z0-9\s_]')
-    return re.sub(special_char_pattern, '', input_string).lower().replace(' ', '_').replace('-', '_')
+    normalized_input = input_string.replace('-', '_')
+    return re.sub(special_char_pattern, '', normalized_input).lower().replace(' ', '_')
 
 
 def term_color(text: str, color: str) -> str:
