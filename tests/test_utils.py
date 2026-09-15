@@ -21,6 +21,10 @@ class TestUtils(unittest.TestCase):
         cleaned = clean_input('test project')
         self.assertEqual('test_project', cleaned)
 
+    def test_clean_input_normalize_hyphen(self):
+        cleaned = clean_input('test-project')
+        self.assertEqual('test_project', cleaned)
+
     def test_is_snake_case(self):
         assert is_snake_case("hello_world")
         assert not is_snake_case("HelloWorld")
