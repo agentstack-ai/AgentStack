@@ -1,0 +1,54 @@
+---
+title: 'Parallel'
+description: 'Free web search and page excerpts without a search API key'
+---
+
+[Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp)
+provides web search powered by Fast mode and page fetching. No Parallel account
+or API key is needed for light use; the anonymous service has usage limits.
+
+## Installation
+
+Within an AgentStack project, run:
+
+```bash
+agentstack tools add parallel
+```
+
+This installs the MCP client and adds `web_search` and `web_fetch` to your agents.
+Use `--agent researcher` to restrict the tool to one agent. The tools return source
+URLs and excerpts for the agent to analyze and cite. `web_fetch` accepts up to 20
+HTTP(S) URLs and an objective of up to 200 characters. Pass an empty objective
+string for general excerpts. Requests time out
+after 30 seconds; service errors propagate to the framework without switching
+providers or retrying automatically.
+
+## Research starter
+
+New projects created with `agentstack init my_research --template research` use
+Parallel when `PERPLEXITY_API_KEY` is absent from the environment and `~/.env`.
+If that key is configured, the starter keeps Perplexity. An LLM provider must
+still be configured for the agents.
+
+Existing projects and templates loaded from a file or URL keep their selected
+tools. You can explicitly add Perplexity with `agentstack tools add perplexity`.
+To remove Parallel from an existing project, run `agentstack tools remove parallel`.
+
+## Conversation context
+
+Each `agentstack run` gives related search and fetch calls one opaque session ID.
+A later run starts a new session. Applications calling the tools without the CLI
+can scope related calls with `search_session`:
+
+```python
+import agentstack
+from agentstack.search import search_session
+
+with search_session():
+    search, fetch = agentstack.tools['parallel']
+    # Pass these framework-native callables to your agent within this context.
+```
+
+Without a session context, each standalone tool call receives its own session ID.
+Concurrent conversations have separate contexts. The MCP connection is opened
+only when a tool is called; adding or listing the tool makes no search request.

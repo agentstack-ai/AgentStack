@@ -43,6 +43,7 @@ dev = [
 ]
 test = [
     "tox",
+    "mcp>=1.12,<2",
 ]
 crewai = [
     "crewai==0.118.0",

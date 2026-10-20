@@ -1,0 +1,8 @@
+{
+  "name": "parallel",
+  "url": "https://docs.parallel.ai/integrations/mcp/search-mcp",
+  "category": "web-retrieval",
+  "dependencies": ["mcp>=1.12,<2"],
+  "tools": ["web_search", "web_fetch"],
+  "cta": "Parallel Search MCP is ready. No search API key or account is required."
+}

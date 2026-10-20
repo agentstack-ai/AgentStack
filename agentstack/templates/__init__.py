@@ -4,6 +4,7 @@ from pathlib import Path
 import pydantic
 import requests
 import json
+from dotenv import dotenv_values
 from agentstack.exceptions import ValidationError
 from agentstack.utils import get_package_path
 
@@ -247,7 +248,18 @@ class TemplateConfig(pydantic.BaseModel):
             raise ValidationError(f"Template {name} not bundled with agentstack.")
 
         path = _get_builtin_templates_path() / f"{name}.json"
-        return cls.from_file(path)
+        template = cls.from_file(path)
+        # Only choose a default for new projects using the bundled research
+        # starter. Saved projects and explicit file/URL templates keep their tools.
+        if name == 'research':
+            home_key = dotenv_values(Path.home() / '.env').get('PERPLEXITY_API_KEY')
+            key = os.getenv('PERPLEXITY_API_KEY', home_key)
+            if not key or not key.strip():
+                template.tools = [
+                    cls.Tool(name='parallel', agents=tool.agents) if tool.name == 'perplexity' else tool
+                    for tool in template.tools
+                ]
+        return template
 
     @classmethod
     def from_file(cls, path: Path) -> 'TemplateConfig':
